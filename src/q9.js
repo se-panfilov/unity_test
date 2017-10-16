@@ -739,7 +739,6 @@ describe('Unit tests.', () => {
 
   })
 
-  // TODO: Add more tests
 })
 
 // TODO (S.Panfilov)
