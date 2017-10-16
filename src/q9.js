@@ -681,7 +681,7 @@ describe('Unit tests.', () => {
 
   describe('getRecentConversationSummaries.', () => {
 
-    it('shpould call methods with proper args', async () => {
+    it('should call methods with proper args', async () => {
       const mock = sinon.mock(ConversationSummaries)
 
       const expectedConversations = [1]
@@ -696,6 +696,42 @@ describe('Unit tests.', () => {
       const result = await ConversationSummaries.getRecentConversationSummaries()
 
       expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
+    })
+
+    it('should return sorted result', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+
+      const expectedConversations = [1]
+      mock.expects('getConversations').withExactArgs().returns(expectedConversations).once()
+
+      const expectedMessages = [2]
+      mock.expects('getMessagesForConversations').withExactArgs(expectedConversations).returns(expectedMessages).once()
+
+      const expectedLatestMessage = [3]
+      mock.expects('getLatestMessages').withExactArgs(expectedMessages).returns(expectedLatestMessage).once()
+
+      const expectedResult = [
+        {
+          id: 1,
+          latest_message:
+            {created_at: '2016-08-21T10:15:00.670Z'}
+        },
+        {
+          id: 2,
+          latest_message:
+            {created_at: '2016-08-25T10:15:00.670Z'}
+        }
+      ]
+
+      mock.expects('mapResult').withExactArgs(expectedLatestMessage).returns(expectedResult.concat([])).once()
+
+      const result = await ConversationSummaries.getRecentConversationSummaries()
+
+      expect(result[0]).to.be.deep.equal(expectedResult[1])
+      expect(result[1]).to.be.deep.equal(expectedResult[0])
 
       mock.verify()
       mock.restore()
