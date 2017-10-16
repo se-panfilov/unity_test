@@ -104,6 +104,8 @@ const ConversationSummaries = {
   },
 
   async mapResult (messages) {
+    if (!Array.isArray(messages)) throw new Error('messages should be an array')
+
     return Promise.all(messages.map(async (v) => {
       const {id, avatar_url} = await this.getUser(v.latest_message.from_user_id)
 
@@ -533,8 +535,82 @@ describe('Unit tests', () => {
   })
 
   describe('mapResult', () => {
-    it('QQQQ', async () => {
 
+    it('should throw an error when messages isn\'t an array', async () => {
+      const expectedMessage = 'messages should be an array'
+
+      const message1 = await getAsyncErrorMessage('mapResult')
+      expect(message1).to.be.equal(expectedMessage)
+
+      const message2 = await getAsyncErrorMessage('mapResult', '')
+      expect(message2).to.be.equal(expectedMessage)
+
+      const message3 = await getAsyncErrorMessage('mapResult', 123)
+      expect(message3).to.be.equal(expectedMessage)
+
+      const message4 = await getAsyncErrorMessage('mapResult', null)
+      expect(message4).to.be.equal(expectedMessage)
+
+      const message5 = await getAsyncErrorMessage('mapResult', {})
+      expect(message5).to.be.equal(expectedMessage)
+    })
+
+    it('should map results in a proper structure', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+
+      const user1 = {
+        id: 3,
+        avatar_url: 'some.com/123',
+        some_extra_field: 'remove_me1'
+      }
+
+      const user2 = {
+        id: 6,
+        avatar_url: 'some.com/456',
+        some_extra_field: 'remove_me2'
+      }
+
+      const data = [
+        {id: 1, latest_message: {id: 2, body: 'some1', created_at: new Date(), from_user_id: user1.id}},
+        {id: 4, latest_message: {id: 5, body: 'some2', created_at: new Date(), from_user_id: user2.id}}
+      ]
+
+      mock.expects('getUser').withExactArgs(user1.id).returns(user1).once()
+      mock.expects('getUser').withExactArgs(user2.id).returns(user2).once()
+
+      const expectedResult = [
+        {
+          id: data[0].id,
+          latest_message: {
+            id: data[0].latest_message.id,
+            body: data[0].latest_message.body,
+            created_at: data[0].latest_message.created_at,
+            from_user: {
+              id: user1.id,
+              avatar_url: user1.avatar_url
+            }
+          }
+        },
+        {
+          id: data[1].id,
+          latest_message: {
+            id: data[1].latest_message.id,
+            body: data[1].latest_message.body,
+            created_at: data[1].latest_message.created_at,
+            from_user: {
+              id: user2.id,
+              avatar_url: user2.avatar_url
+            }
+          }
+        }
+      ]
+
+      const result = await ConversationSummaries.mapResult(data)
+
+      expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
     })
   })
 
