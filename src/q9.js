@@ -133,8 +133,9 @@ const ConversationSummaries = {
     const conversations = await this.getConversations()
     const messages = await this.getMessagesForConversations(conversations)
     const latestMessages = this.getLatestMessages(messages)
+    const result = await this.mapResult(latestMessages)
 
-    return this.mapResult(latestMessages).sort((a, b) => new Date(getTimeStamp(a) - getTimeStamp(b)))
+    return result.sort((a, b) => new Date(this.getTimeStamp(b.latest_message.created_at) - this.getTimeStamp(a.latest_message.created_at)))
   }
 }
 
