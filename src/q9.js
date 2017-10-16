@@ -489,6 +489,30 @@ describe('Unit tests', () => {
       expect(message4).to.be.equal('Conversations should be an array')
     })
 
+    it('should call getMessages for each conversation provided', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const obj1 = {id: 1}
+      const obj2 = {id: 2}
+      const conversations = [obj1, obj2]
+
+      const expectedMessages1 = [{id: 3}]
+      mock.expects('getMessages').withExactArgs(obj1.id).returns(expectedMessages1).once()
+
+      const expectedMessages2 = [{id: 4}]
+      mock.expects('getMessages').withExactArgs(obj2.id).returns(expectedMessages2).once()
+
+      const expectedResult = [
+        {id: obj1.id, messages: expectedMessages1},
+        {id: obj2.id, messages: expectedMessages2}
+      ]
+      const result = await ConversationSummaries.getMessagesForConversations(conversations)
+
+      expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
+    })
+
   })
 
   describe('getLatestMessages.', () => {
@@ -534,7 +558,7 @@ describe('Unit tests', () => {
 
   })
 
-  describe('mapResult', () => {
+  describe('mapResult.', () => {
 
     it('should throw an error when messages isn\'t an array', async () => {
       const expectedMessage = 'messages should be an array'
