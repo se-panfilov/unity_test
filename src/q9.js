@@ -384,21 +384,93 @@ describe('Unit tests', () => {
   })
 
   describe('getConversations', () => {
-    it('QQQQ', async () => {
 
+    it('should call getData with proper args', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const expectedResult = [1, 2, 3]
+      const endpointUrl = 'conversations'
+
+      mock.expects('getData').withExactArgs(endpointUrl).returns(expectedResult).once()
+
+      const result = await ConversationSummaries.getConversations()
+
+      expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
     })
+
   })
 
   describe('getMessages', () => {
-    it('QQQQ', async () => {
 
+    it('should throw an error without id provided', async () => {
+      try {
+        await ConversationSummaries.getMessages()
+      } catch (err) {
+        expect(err.message).to.be.equal('Invalid id provided')
+      }
     })
+
+    it('should throw an error with invalid id provided', async () => {
+      try {
+        await ConversationSummaries.getMessages('asdsad')
+      } catch (err) {
+        expect(err.message).to.be.equal('Invalid id provided')
+      }
+    })
+
+    it('should call getData with proper args', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const expectedResult = [1, 2, 3]
+      const id = 100
+      const endpointUrl = `/conversations/${id}/messages`
+
+      mock.expects('getData').withExactArgs(endpointUrl).returns(expectedResult).once()
+
+      const result = await ConversationSummaries.getMessages(id)
+
+      expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
+    })
+
   })
 
   describe('getUser', () => {
-    it('QQQQ', async () => {
 
+    it('should throw an error without id provided', async () => {
+      try {
+        await ConversationSummaries.getUser()
+      } catch (err) {
+        expect(err.message).to.be.equal('Invalid id provided')
+      }
     })
+
+    it('should throw an error with invalid id provided', async () => {
+      try {
+        await ConversationSummaries.getUser('asdsad')
+      } catch (err) {
+        expect(err.message).to.be.equal('Invalid id provided')
+      }
+    })
+    it('should call getData with proper args', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const expectedResult = [1, 2, 3]
+      const id = 100
+      const endpointUrl = `/users/${id}`
+
+      mock.expects('getData').withExactArgs(endpointUrl).returns(expectedResult).once()
+
+      const result = await ConversationSummaries.getUser(id)
+
+      expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
+    })
+
   })
 
   describe('getMessagesForConversations', () => {
