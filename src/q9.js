@@ -98,6 +98,8 @@ const ConversationSummaries = {
   },
 
   getLatestMessages (messages) {
+    if (!Array.isArray(messages)) throw new Error('messages should be an array')
+
     return messages.map(v => ({id: v.id, latest_message: v.messages[0]}))
   },
 
@@ -213,7 +215,17 @@ describe('getRecentConversationSummaries()', () => {
 // Unit tests
 describe('Unit tests', () => {
 
-  describe('showError', () => {
+  async function getAsyncErrorMessage (method, ...rest) {
+    try {
+      await ConversationSummaries[method](...rest)
+    } catch (err) {
+      return err.message
+    }
+
+    throw new Error('Method didn\'t fires any errors')
+  }
+
+  describe('showError.', () => {
     it('should return error to the console', () => {
       let isConsoleFired = false
 
@@ -227,7 +239,7 @@ describe('Unit tests', () => {
     })
   })
 
-  describe('onError', () => {
+  describe('onError.', () => {
 
     it('should return badRequest message', () => {
       const mock = sinon.mock(ConversationSummaries)
@@ -327,14 +339,11 @@ describe('Unit tests', () => {
 
   })
 
-  describe('getData', () => {
+  describe('getData.', () => {
 
     it('should throw an error when no url provided', async () => {
-      try {
-        await ConversationSummaries.getData()
-      } catch (err) {
-        expect(err.message).to.be.equal('Url should be provided')
-      }
+      const message3 = await getAsyncErrorMessage('getData')
+      expect(message3).to.be.equal('Url should be provided')
     })
 
     it('should call fetch with provided args', async () => {
@@ -383,7 +392,7 @@ describe('Unit tests', () => {
 
   })
 
-  describe('getConversations', () => {
+  describe('getConversations.', () => {
 
     it('should call getData with proper args', async () => {
       const mock = sinon.mock(ConversationSummaries)
@@ -402,22 +411,16 @@ describe('Unit tests', () => {
 
   })
 
-  describe('getMessages', () => {
+  describe('getMessages.', () => {
 
     it('should throw an error without id provided', async () => {
-      try {
-        await ConversationSummaries.getMessages()
-      } catch (err) {
-        expect(err.message).to.be.equal('Invalid id provided')
-      }
+      const message3 = await getAsyncErrorMessage('getMessages')
+      expect(message3).to.be.equal('Invalid id provided')
     })
 
     it('should throw an error with invalid id provided', async () => {
-      try {
-        await ConversationSummaries.getMessages('asdsad')
-      } catch (err) {
-        expect(err.message).to.be.equal('Invalid id provided')
-      }
+      const message3 = await getAsyncErrorMessage('getMessages', 'asdsad')
+      expect(message3).to.be.equal('Invalid id provided')
     })
 
     it('should call getData with proper args', async () => {
@@ -438,23 +441,18 @@ describe('Unit tests', () => {
 
   })
 
-  describe('getUser', () => {
+  describe('getUser.', () => {
 
     it('should throw an error without id provided', async () => {
-      try {
-        await ConversationSummaries.getUser()
-      } catch (err) {
-        expect(err.message).to.be.equal('Invalid id provided')
-      }
+      const message3 = await getAsyncErrorMessage('getUser')
+      expect(message3).to.be.equal('Invalid id provided')
     })
 
     it('should throw an error with invalid id provided', async () => {
-      try {
-        await ConversationSummaries.getUser('asdsad')
-      } catch (err) {
-        expect(err.message).to.be.equal('Invalid id provided')
-      }
+      const message3 = await getAsyncErrorMessage('getUser', 'asdasds')
+      expect(message3).to.be.equal('Invalid id provided')
     })
+
     it('should call getData with proper args', async () => {
       const mock = sinon.mock(ConversationSummaries)
       const expectedResult = [1, 2, 3]
@@ -474,15 +472,64 @@ describe('Unit tests', () => {
   })
 
   describe('getMessagesForConversations', () => {
-    it('QQQQ', async () => {
 
+    it('should throw an error without id provided', async () => {
+      const message1 = await getAsyncErrorMessage('getMessagesForConversations')
+      expect(message1).to.be.equal('Conversations should be an array')
+
+      const message2 = await getAsyncErrorMessage('getMessagesForConversations', {})
+      expect(message2).to.be.equal('Conversations should be an array')
+
+      const message3 = await getAsyncErrorMessage('getMessagesForConversations', 123)
+      expect(message3).to.be.equal('Conversations should be an array')
+
+      const message4 = await getAsyncErrorMessage('getMessagesForConversations', '')
+      expect(message4).to.be.equal('Conversations should be an array')
     })
+
   })
 
-  describe('getLatestMessages', () => {
-    it('QQQQ', () => {
+  describe('getLatestMessages.', () => {
 
+    it('should throw an error when messages isn\'t an array', () => {
+      const expectedMessage = 'messages should be an array'
+
+      expect(() => ConversationSummaries.getLatestMessages('')).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getLatestMessages(123)).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getLatestMessages(null)).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getLatestMessages({})).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getLatestMessages()).to.throw(expectedMessage)
     })
+
+    it('should return proper object ', () => {
+
+      const messages = [
+        {
+          id: 1,
+          messages: [
+            {some: 'some1'},
+            {some: 'other1'}
+          ]
+        },
+        {
+          id: 2,
+          messages: [
+            {some: 'some2'},
+            {some: 'other2'}
+          ]
+        }
+      ]
+
+      const expectedResult = [
+        {id: messages[0].id, latest_message: messages[0].messages[0]},
+        {id: messages[1].id, latest_message: messages[1].messages[0]},
+      ]
+
+      const result = ConversationSummaries.getLatestMessages(messages)
+
+      expect(result).to.be.deep.equal(expectedResult)
+    })
+
   })
 
   describe('mapResult', () => {
@@ -491,10 +538,28 @@ describe('Unit tests', () => {
     })
   })
 
-  describe('getRecentConversationSummaries', () => {
-    it('QQQQ', async () => {
+  describe('getRecentConversationSummaries.', () => {
 
+    it('shpould call methods with proper args', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+
+      const expectedConversations = [1]
+      const expectedMessages = [2]
+      const expectedLatestMessage = [3]
+      const expectedResult = [4]
+      mock.expects('getConversations').withExactArgs().returns(expectedConversations).once()
+      mock.expects('getMessagesForConversations').withExactArgs(expectedConversations).returns(expectedMessages).once()
+      mock.expects('getLatestMessages').withExactArgs(expectedMessages).returns(expectedLatestMessage).once()
+      mock.expects('mapResult').withExactArgs(expectedLatestMessage).returns(expectedResult).once()
+
+      const result = await ConversationSummaries.getRecentConversationSummaries()
+
+      expect(result).to.be.deep.equal(expectedResult)
+
+      mock.verify()
+      mock.restore()
     })
+
   })
 
   // TODO: Add more tests
