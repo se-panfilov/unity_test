@@ -26,7 +26,7 @@
 */
 
 // TODO (S.Panfilov)
-const fetch = require('node-fetch')
+let fetch = require('node-fetch')
 
 const API_BASE_URL = 'http://ui-developer-backend.herokuapp.com/api'
 
@@ -38,88 +38,92 @@ const ERRORS = {
   serviceUnavailable: 503
 }
 
-function showError (message) {
-  console.error(message)
-}
+// I need to wrap all the functions just for test purpose, cause can't use sinon.mock() otherwise
+const ConversationSummaries = {
 
-function onError (response) {
-  switch (response.status) {
-    case ERRORS.badRequest:
-      return showError('Bad request')
-    case ERRORS.notFound:
-      return showError('Not found')
-    case ERRORS.methodNotAllowed:
-      return showError('Method not allowed')
-    case ERRORS.internalServerError:
-      return showError('Internal server error')
-    case ERRORS.serviceUnavailable:
-      return showError('Service unavailable')
-    default:
-      return showError('Unknown error')
-  }
-}
+  showError (message) {
+    console.error(message)
+  },
 
-async function getData (url) {
-  if (!url) throw new Error('Url should be provided')
-
-  return fetch(`${API_BASE_URL}/${url}`).then(response => {
-    if (!response.ok) return onError(response)
-
-    return response.json()
-  })
-}
-
-async function getConversations () {
-  return getData('conversations')
-}
-
-async function getMessages (id) {
-  if (!Number.isFinite(+id)) throw new Error('Invalid id provided')
-
-  return getData(`/conversations/${id}/messages`)
-}
-
-async function getUser (id) {
-  if (!Number.isFinite(+id)) throw new Error('Invalid id provided')
-
-  return getData(`/users/${id}`)
-}
-
-async function getMessagesForConversations (conversations) {
-  if (!Array.isArray(conversations)) throw new Error('Conversations should be an array')
-
-  return Promise.all(conversations.map(async (v) => ({
-    id: v.id,
-    messages: await getMessages(v.id)
-  })))
-}
-
-function getLatestMessages (messages) {
-  return messages.map(v => ({id: v.id, latest_message: v.messages[0]}))
-}
-
-async function mapResult (messages) {
-  return Promise.all(messages.map(async (v) => {
-    const {id, avatar_url} = await getUser(v.latest_message.from_user_id)
-
-    return {
-      id: v.id,
-      latest_message: {
-        id: v.latest_message.id,
-        body: v.latest_message.body,
-        created_at: v.latest_message.created_at,
-        from_user: {id, avatar_url}
-      }
+  onError (response) {
+    switch (response.status) {
+      case ERRORS.badRequest:
+        return this.showError('Bad request')
+      case ERRORS.notFound:
+        return this.showError('Not found')
+      case ERRORS.methodNotAllowed:
+        return this.showError('Method not allowed')
+      case ERRORS.internalServerError:
+        return this.showError('Internal server error')
+      case ERRORS.serviceUnavailable:
+        return this.showError('Service unavailable')
+      default:
+        return this.showError('Unknown error')
     }
-  }))
-}
+  },
 
-async function getRecentConversationSummaries () {
-  const conversations = await getConversations()
-  const messages = await getMessagesForConversations(conversations)
-  const latestMessages = getLatestMessages(messages)
+  async getData (url, options) {
+    if (!url) throw new Error('Url should be provided')
 
-  return mapResult(latestMessages)
+    return fetch(`${API_BASE_URL}/${url}`, options).then(response => {
+      if (!response.ok) return this.onError(response)
+
+      return response.json()
+    })
+  },
+
+  async getConversations () {
+    return this.getData('conversations')
+  },
+
+  async getMessages (id) {
+    if (!Number.isFinite(+id)) throw new Error('Invalid id provided')
+
+    return this.getData(`/conversations/${id}/messages`)
+  },
+
+  async getUser (id) {
+    if (!Number.isFinite(+id)) throw new Error('Invalid id provided')
+
+    return this.getData(`/users/${id}`)
+  },
+
+  async getMessagesForConversations (conversations) {
+    if (!Array.isArray(conversations)) throw new Error('Conversations should be an array')
+
+    return Promise.all(conversations.map(async (v) => ({
+      id: v.id,
+      messages: await this.getMessages(v.id)
+    })))
+  },
+
+  getLatestMessages (messages) {
+    return messages.map(v => ({id: v.id, latest_message: v.messages[0]}))
+  },
+
+  async mapResult (messages) {
+    return Promise.all(messages.map(async (v) => {
+      const {id, avatar_url} = await this.getUser(v.latest_message.from_user_id)
+
+      return {
+        id: v.id,
+        latest_message: {
+          id: v.latest_message.id,
+          body: v.latest_message.body,
+          created_at: v.latest_message.created_at,
+          from_user: {id, avatar_url}
+        }
+      }
+    }))
+  },
+
+  async getRecentConversationSummaries () {
+    const conversations = await this.getConversations()
+    const messages = await this.getMessagesForConversations(conversations)
+    const latestMessages = this.getLatestMessages(messages)
+
+    return this.mapResult(latestMessages)
+  }
 }
 
 // TODO (S.Panfilov)
@@ -135,7 +139,7 @@ const expect = require('chai').expect
 // Integration test
 describe('getRecentConversationSummaries()', () => {
   it('should return the current user\'s latest conversations sorted by latest message\'s timestamp', async () => {
-    const result = await getRecentConversationSummaries()
+    const result = await ConversationSummaries.getRecentConversationSummaries()
 
     // TODO (S.Panfilov)
     // result.should.deep.equal([
@@ -208,7 +212,214 @@ describe('getRecentConversationSummaries()', () => {
 
 // Unit tests
 describe('Unit tests', () => {
+
   describe('showError', () => {
+    it('should return error to the console', () => {
+      let isConsoleFired = false
+
+      console.error = function () {
+        isConsoleFired = true
+      }
+
+      expect(isConsoleFired).to.be.false
+      ConversationSummaries.showError()
+      expect(isConsoleFired).to.be.true
+    })
+  })
+
+  describe('onError', () => {
+
+    it('should return badRequest message', () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const response = {
+        status: ERRORS.badRequest
+      }
+
+      const expectedResult = 'Bad request'
+
+      mock.expects('showError').withExactArgs(expectedResult).once()
+
+      ConversationSummaries.onError(response)
+
+      mock.verify()
+      mock.restore()
+    })
+
+    it('should return notFound message', () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const response = {
+        status: ERRORS.notFound
+      }
+
+      const expectedResult = 'Not found'
+
+      mock.expects('showError').withExactArgs(expectedResult).once()
+
+      ConversationSummaries.onError(response)
+
+      mock.verify()
+      mock.restore()
+    })
+
+    it('should return methodNotAllowed message', () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const response = {
+        status: ERRORS.methodNotAllowed
+      }
+
+      const expectedResult = 'Method not allowed'
+
+      mock.expects('showError').withExactArgs(expectedResult).once()
+
+      ConversationSummaries.onError(response)
+
+      mock.verify()
+      mock.restore()
+    })
+
+    it('should return internalServerError message', () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const response = {
+        status: ERRORS.internalServerError
+      }
+
+      const expectedResult = 'Internal server error'
+
+      mock.expects('showError').withExactArgs(expectedResult).once()
+
+      ConversationSummaries.onError(response)
+
+      mock.verify()
+      mock.restore()
+    })
+
+    it('should return serviceUnavailable message', () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const response = {
+        status: ERRORS.serviceUnavailable
+      }
+
+      const expectedResult = 'Service unavailable'
+
+      mock.expects('showError').withExactArgs(expectedResult).once()
+
+      ConversationSummaries.onError(response)
+
+      mock.verify()
+      mock.restore()
+    })
+
+    it('should return unknown error message', () => {
+      const mock = sinon.mock(ConversationSummaries)
+      const response = {
+        status: 666
+      }
+
+      const expectedResult = 'Unknown error'
+
+      mock.expects('showError').withExactArgs(expectedResult).once()
+
+      ConversationSummaries.onError(response)
+
+      mock.verify()
+      mock.restore()
+    })
+
+  })
+
+  describe('getData', () => {
+
+    it('should throw an error when no url provided', async () => {
+      try {
+        await ConversationSummaries.getData()
+      } catch (err) {
+        expect(err.message).to.be.equal('Url should be provided')
+      }
+    })
+
+    it('should call fetch with provided args', async () => {
+      const url = 'some.com'
+      const options = {some: 'some'}
+
+      //dirty hack to mock fetch toth for nodejs and browser
+      let calledUrl = ''
+      let calledOptions = ''
+      fetch = async function (url, options) {
+        calledUrl = url
+        calledOptions = options
+
+        return {
+          ok: true, json () {
+          }
+        }
+      }
+
+      const expectedUrl = `${API_BASE_URL}/${url}`
+
+      await ConversationSummaries.getData(url, options)
+
+      expect(calledUrl).to.be.equal(expectedUrl)
+      expect(calledOptions).to.be.deep.equal(options)
+    })
+
+    it('should call onError in case of bad response', async () => {
+      const mock = sinon.mock(ConversationSummaries)
+
+      //dirty hack to mock fetch toth for nodejs and browser
+      fetch = async function (url, options) {
+        return {
+          ok: false, json () {
+          }
+        }
+      }
+
+      mock.expects('onError').withArgs({json: sinon.match.func, ok: false}).once()
+
+      await ConversationSummaries.getData('some')
+
+      mock.verify()
+      mock.restore()
+    })
+
+  })
+
+  describe('getConversations', () => {
+    it('QQQQ', async () => {
+
+    })
+  })
+
+  describe('getMessages', () => {
+    it('QQQQ', async () => {
+
+    })
+  })
+
+  describe('getUser', () => {
+    it('QQQQ', async () => {
+
+    })
+  })
+
+  describe('getMessagesForConversations', () => {
+    it('QQQQ', async () => {
+
+    })
+  })
+
+  describe('getLatestMessages', () => {
+    it('QQQQ', () => {
+
+    })
+  })
+
+  describe('mapResult', () => {
+    it('QQQQ', async () => {
+
+    })
+  })
+
+  describe('getRecentConversationSummaries', () => {
     it('QQQQ', async () => {
 
     })
