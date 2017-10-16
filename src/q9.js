@@ -121,12 +121,20 @@ const ConversationSummaries = {
     }))
   },
 
+  getTimeStamp (str) {
+    if (typeof str !== 'string') throw new Error('argument should be a string')
+    const date = new Date(str)
+    if (date instanceof Date && isNaN(date.valueOf())) throw new Error('invalid string provided')
+
+    return date.getTime()
+  },
+
   async getRecentConversationSummaries () {
     const conversations = await this.getConversations()
     const messages = await this.getMessagesForConversations(conversations)
     const latestMessages = this.getLatestMessages(messages)
 
-    return this.mapResult(latestMessages)
+    return this.mapResult(latestMessages).sort((a, b) => new Date(getTimeStamp(a) - getTimeStamp(b)))
   }
 }
 
@@ -215,7 +223,7 @@ describe('getRecentConversationSummaries()', () => {
 })
 
 // Unit tests
-describe('Unit tests', () => {
+describe('Unit tests.', () => {
 
   async function getAsyncErrorMessage (method, ...rest) {
     try {
@@ -635,6 +643,38 @@ describe('Unit tests', () => {
 
       mock.verify()
       mock.restore()
+    })
+  })
+
+  describe('getTimeStamp.', () => {
+
+    it('should throw an error when argument isn\'t a string', () => {
+      const expectedMessage = 'argument should be a string'
+
+      expect(() => ConversationSummaries.getTimeStamp(123123213)).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getTimeStamp(new Date)).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getTimeStamp({})).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getTimeStamp([])).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getTimeStamp()).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getTimeStamp(null)).to.throw(expectedMessage)
+    })
+
+    it('should throw an error when argument isn\'t convertable to date', () => {
+      const expectedMessage = 'invalid string provided'
+
+      expect(() => ConversationSummaries.getTimeStamp('')).to.throw(expectedMessage)
+      expect(() => ConversationSummaries.getTimeStamp('hello')).to.throw(expectedMessage)
+    })
+
+    it('should return proper timestamp', () => {
+      const str = '2016-08-25T10:15:00.670Z'
+
+      const expectedResult = new Date(str).getTime()
+
+      const result = ConversationSummaries.getTimeStamp(str)
+
+      expect(result).to.be.equal(expectedResult)
+
     })
   })
 
