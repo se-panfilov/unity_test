@@ -62,7 +62,8 @@ const ConversationSummaries = {
     }
   },
 
-  async getData (url, options) {
+  // let's enable CORS for jsfiddle
+  async getData (url, options = {mode: 'cors'}) {
     if (!url) throw new Error('Url should be provided')
 
     return fetch(`${API_BASE_URL}/${url}`, options).then(response => {
@@ -364,7 +365,7 @@ describe('Unit tests.', () => {
       //dirty hack to mock fetch toth for nodejs and browser
       let calledUrl = ''
       let calledOptions = ''
-      fetch = async function (url, options) {
+      fetch = async function (url, options = {mode: 'cors'}) {
         calledUrl = url
         calledOptions = options
 
